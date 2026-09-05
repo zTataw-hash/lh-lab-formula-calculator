@@ -1,0 +1,1674 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>zyC 配方计算器</title>
+<style>
+  body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; margin: 0; padding: 15px; display: flex; flex-direction: row; gap: 15px; align-items: flex-start; box-sizing: border-box; }
+.panel { 
+    background: #fff; 
+    padding: 15px; 
+    border-radius: 6px; 
+    box-shadow: 0 1px 5px rgba(0,0,0,0.1); 
+    min-width: 0;
+    box-sizing: border-box;
+}
+  .panel-left { flex: 1.15 1 0; }
+  .panel-calc { flex: 0.95 1 0; }
+  h2 { margin: 0 0 10px 0; font-size: 18px; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
+  th, td { border: 1px solid #eee; padding: 4px; text-align: center; overflow: visible; vertical-align: middle; }
+  th { background: #fcfcfc; color: #7f8c8d; font-weight: 600; }
+  input { width: 98%; padding: 3px; border: 1px solid #ddd; border-radius: 3px; font-size: 12px; box-sizing: border-box; }
+  .inv-mini-input { text-align:center; white-space:nowrap; overflow-x:auto; }
+  .i-maker { color:#2c3e50; }
+  .i-spec { color:#7f8c8d; }
+  .btn { padding: 6px 12px; border-radius: 4px; cursor: pointer; border: none; font-size: 13px; margin-top: 10px; transition: all 0.3s ease;}
+  .btn-calc { width: 100%; background: #e67e22; color: white; font-weight: bold; margin-bottom: 10px; font-size: 15px; padding: 10px; }
+  .btn-calc:hover { background: #d35400; }
+  .result-box { background: #fdfefe; border: 1px solid #d5dbdb; padding: 10px; border-radius: 4px; margin-top:10px; }
+  .highlight { color: #d35400; font-weight: bold; font-size: 14px;}
+  .badge-tag { background: #9b59b6; color: white; padding: 1px 4px; border-radius: 3px; font-size: 10px; margin-left: 5px; }
+  .lib-index-tag { background: #34495e; color: white; padding: 1px 5px; border-radius: 10px; font-size: 10px; margin-left: 5px; white-space: nowrap; }
+  .enable-head-box { display:flex; flex-direction:column; align-items:center; gap:3px; line-height:1.1; }
+  .enable-head-actions { display:flex; gap:3px; justify-content:center; flex-wrap:nowrap; }
+  .btn-enable-mini { border:none; border-radius:3px; cursor:pointer; padding:2px 4px; font-size:10px; color:white; line-height:1.2; white-space:nowrap; }
+  .btn-enable-all { background:#27ae60; }
+  .btn-enable-none { background:#95a5a6; }
+  .btn-enable-mini:hover { filter:brightness(0.93); }
+  .inv-search-tools { display:flex; align-items:center; gap:8px; margin: 8px 0 10px 0; flex-wrap:wrap; }
+  .inv-search-wrap { position:relative; flex: 1 1 260px; min-width: 220px; }
+  .inv-search-input { width:100% !important; padding:7px 32px 7px 10px; border:1px solid #d6dbdf; border-radius:6px; font-size:13px; background:#fbfcfc; }
+  .inv-search-input:focus { outline:none; border-color:#3498db; box-shadow:0 0 0 2px rgba(52,152,219,0.12); background:#fff; }
+  .inv-search-clear { position:absolute; right:6px; top:50%; transform:translateY(-50%); width:22px; height:22px; border:none; border-radius:50%; background:#eaecee; color:#7f8c8d; cursor:pointer; font-size:16px; line-height:20px; padding:0; display:flex; align-items:center; justify-content:center; }
+  .inv-search-clear:hover { background:#d5dbdb; color:#2c3e50; }
+  .btn-inv-search { flex:0 0 auto; border:none; border-radius:6px; cursor:pointer; padding:7px 13px; font-size:13px; color:#fff; background:#3498db; }
+  .btn-inv-search:hover { background:#2e86c1; }
+  .inv-search-count { color:#7f8c8d; font-size:12px; white-space:nowrap; }
+  .inv-no-match { display:none; color:#95a5a6; font-size:12px; text-align:center; padding:10px 0; border:1px dashed #d5dbdb; border-radius:6px; margin: 0 0 8px 0; background:#fbfcfc; }
+  /* 药品库：按主元素分组显示 */
+  .inv-group-header td {
+    border:none !important;
+    border-left:4px solid #3498db !important;
+    background:#eef7fd;
+    padding:6px 10px 6px 10px;
+    text-align:left;
+    box-shadow: inset 0 -1px 0 #d6eaf8;
+  }
+  .inv-group-title {
+    display:inline-block;
+    font-size:17px;
+    font-weight:750;
+    color:#1f4e79;
+    letter-spacing:0.4px;
+    line-height:1.15;
+  }
+  .inv-group-sub {
+    margin-left:8px;
+    font-size:10px;
+    font-weight:600;
+    color:#7f8c8d;
+    vertical-align:middle;
+  }
+  .inv-group-spacer td { height:10px; padding:0 !important; border:none !important; background:#fff; }
+  .inv-new-spacer td { height:14px; border-top:1px dashed #bdc3c7 !important; }
+  .inv-new-row td { background:#fffdf7; }
+
+  /* 药品库列视觉优化：启用更紧凑、编号弱化、主/次元素低饱和底色 */
+  #invTab .inv-enable-col { width:44px; padding-left:2px; padding-right:2px; }
+  #invTab .i-x { width:12px !important; height:12px !important; min-height:0 !important; padding:0 !important; margin:0; vertical-align:middle; accent-color:#4f7f9f; }
+  #invTab .enable-head-box { gap:2px; }
+  #invTab .enable-head-actions { gap:2px; }
+  #invTab .btn-enable-mini { font-size:8px; padding:1px 2px; border-radius:2px; }
+  .inv-name-cell-wrap { display:flex; align-items:center; gap:4px; min-width:0; }
+  .inv-name-cell-wrap .autocomplete-wrapper { flex:1 1 auto; min-width:0; }
+  .lib-index-mini { flex:0 0 auto; min-width:13px; font-size:9px; line-height:1; color:#aab2b8; font-weight:600; text-align:right; user-select:none; }
+  #invTab td.inv-main-el, #invTab th.inv-main-el { background:#edf2f5; }
+  #invTab td.inv-sec-el,  #invTab th.inv-sec-el  { background:#f3f0e8; }
+  #invTab td.inv-main-el input { background:#f7fafb; border-color:#d4dee4; text-align:center; }
+  #invTab td.inv-sec-el input  { background:#faf8f3; border-color:#ded9cb; text-align:center; }
+  #invTab th.inv-main-el { color:#536b7a; }
+  #invTab th.inv-sec-el  { color:#756d5d; }
+  .sg-box { border: 1px solid #3498db; border-radius: 4px; padding: 10px; margin-bottom: 15px; background: #ebf5fb; font-size: 12px; }
+  .sg-panel { margin-top: 10px; border-top: 1px dashed #bdc3c7; padding-top: 10px; }
+  .sg-input { width: 80px !important; text-align: center; }
+  .sg-title-row { display: flex; align-items: center; cursor: pointer; margin-bottom: 8px; font-weight: bold; gap: 8px; flex-wrap: nowrap; }
+  .sg-title-row input { flex: 0 0 auto; }
+  .sg-ratio-row { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-bottom: 10px; }
+  .sg-ratio-row span, .sg-field span { white-space: nowrap; }
+  .sg-flex { display: flex; flex-direction: column; gap: 8px; }
+  .sg-chem-row { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+  .sg-field { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+
+  /* 高级搜索框样式 */
+  .autocomplete-wrapper { position: relative; display: inline-block; width: 100%; }
+  .autocomplete-items { position: absolute; border: 1px solid #d4d4d4; border-bottom: none; border-top: none; z-index: 99; top: 100%; left: 0; right: 0; background-color: #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-height: 180px; overflow-y: auto; text-align: left; border-radius: 0 0 4px 4px; }
+  .autocomplete-items div { padding: 6px 8px; cursor: pointer; border-bottom: 1px solid #d4d4d4; font-size: 12px; color: #2c3e50; }
+  .autocomplete-items div:hover { background-color: #ebf5fb; }
+  
+
+
+  /* 历史查询样式 */
+  .history-box { background: #fff; border: 1px solid #dfe6e9; border-radius: 6px; padding: 10px; margin-top: 14px; }
+  .history-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .history-head h3 { margin: 0; font-size: 15px; color: #2c3e50; }
+  .history-tools { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; }
+  .history-search { flex: 1; padding: 6px; border: 1px solid #d5dbdb; border-radius: 4px; font-size: 12px; }
+  .history-list { max-height: 260px; overflow-y: auto; padding-right: 2px; }
+  .history-card { border: 1px solid #ecf0f1; border-left: 4px solid #3498db; background: #fbfcfc; border-radius: 5px; padding: 8px; margin-bottom: 8px; text-align: left; }
+  .history-title { font-weight: 700; color: #2c3e50; margin-bottom: 4px; word-break: break-all; }
+  .history-meta { color: #7f8c8d; font-size: 11px; line-height: 1.45; margin-bottom: 5px; }
+  .history-preview { color: #5d6d7e; font-size: 11px; line-height: 1.5; margin: 5px 0; word-break: break-all; }
+  .history-actions { display: flex; gap: 5px; flex-wrap: wrap; }
+  .btn-mini { border: none; border-radius: 3px; cursor: pointer; padding: 3px 7px; font-size: 11px; color: white; }
+  .btn-view { background: #3498db; }
+  .btn-load { background: #27ae60; }
+  .btn-del { background: #e74c3c; }
+  .btn-clear { background: #95a5a6; color: white; border: none; border-radius: 4px; padding: 5px 8px; cursor: pointer; font-size: 12px; }
+  .history-empty { color: #95a5a6; font-size: 12px; text-align: center; padding: 12px 0; border: 1px dashed #d5dbdb; border-radius: 4px; }
+
+  /* 提示框样式 */
+  .tips-box { font-size: 12px; color: #5f6a6a; margin-top: 15px; padding: 10px 12px; background: #f8f9fa; border-radius: 4px; border-left: 4px solid #f39c12; line-height: 1.5; }
+  code { background: #eaeded; padding: 2px 4px; border-radius: 3px; color: #c0392b; font-family: Consolas, monospace; }
+
+
+  /* 手机适配增强 */
+  .table-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .calc-top { font-size:13px; margin-bottom:12px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .target-mass-input, .target-mol-input { width:80px !important; }
+  .target-formula-input { width:240px !important; max-width:100%; }
+  .mol-preview { font-size: 11px; color: #7f8c8d; margin: -4px 0 12px 0; line-height: 1.45; }
+  .btn-detail { background:#8e44ad; color:white; width:100%; margin-top:8px; }
+  .btn-detail:hover { background:#6c3483; }
+  .detail-modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.42); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box; }
+  .detail-modal { background: #fff; width: min(860px, 96vw); max-height: 86vh; overflow-y: auto; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); padding: 18px; text-align: left; }
+  .detail-modal h3 { margin: 0 0 10px 0; color:#2c3e50; }
+  .detail-section { margin-top: 12px; padding-top: 10px; border-top: 1px solid #ecf0f1; }
+  .detail-section h4 { margin: 0 0 8px 0; color:#34495e; }
+  .detail-table-wrap { width:100%; overflow-x:auto; -webkit-overflow-scrolling: touch; border-radius:6px; }
+  .detail-table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: auto; min-width: 760px; }
+  .detail-table th, .detail-table td { border: 1px solid #eaecee; padding: 7px; text-align: left; vertical-align: top; }
+  .detail-table th { background:#f7f9fa; color:#566573; }
+  .detail-formula { background:#f8f9fa; border-left:4px solid #3498db; padding:8px; border-radius:4px; font-family: Consolas, 'Courier New', monospace; line-height:1.6; word-break:break-all; }
+  .detail-summary { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:8px; margin:10px 0; }
+  .detail-card { background:#f8fbfd; border:1px solid #d6eaf8; border-radius:7px; padding:8px; }
+  .detail-card-label { color:#7f8c8d; font-size:11px; margin-bottom:3px; }
+  .detail-card-value { color:#2c3e50; font-weight:700; font-size:13px; word-break:break-all; }
+  .detail-reagent-name { color:#2c3e50; font-weight:700; line-height:1.35; margin-bottom:5px; word-break:break-all; }
+  .reagent-meta { display:flex; gap:4px; flex-wrap:wrap; align-items:center; }
+  .meta-pill { display:inline-flex; align-items:center; border-radius:999px; padding:2px 6px; font-size:10px; line-height:1.35; white-space:nowrap; }
+  .meta-lib { background:#eef2f7; color:#34495e; border:1px solid #d5dde7; }
+  .meta-mw { background:#eafaf1; color:#1e8449; border:1px solid #c6efce; }
+  .meta-purity { background:#fff4e6; color:#b9770e; border:1px solid #f8d7a4; }
+  .calc-compact { color:#34495e; line-height:1.6; }
+  .calc-compact b { color:#2c3e50; }
+  .calc-expression { font-family: Consolas, 'Courier New', monospace; background:#fbfcfc; border-left:3px solid #d6dbdf; padding:5px 7px; border-radius:4px; color:#566573; line-height:1.55; word-break:break-all; }
+  .detail-close { background:#95a5a6; color:white; border:none; border-radius:4px; padding:7px 12px; cursor:pointer; float:right; }
+  .sg-flex { display:flex; gap:10px; flex-wrap:wrap; }
+  .mobile-note { display:none; }
+
+  @media (max-width: 900px) {
+    html, body { width: 100%; max-width: 100%; overflow-x: hidden; }
+    body {
+      display: flex;
+      flex-direction: column;
+      padding: 8px;
+      gap: 10px;
+      box-sizing: border-box;
+      background: #eef3f7;
+    }
+    .panel {
+      width: 100%;
+      flex: none;
+      box-sizing: border-box;
+      padding: 12px;
+      border-radius: 10px;
+    }
+    .panel-calc { order: 1; }
+    .panel-left { order: 2; overflow-x: hidden; }
+    h2 { font-size: 17px; }
+    .inv-search-tools { display:grid; grid-template-columns:1fr; gap:8px; align-items:center; }
+    .inv-search-wrap { min-width:0; }
+    .inv-search-input { font-size:16px; min-height:38px; }
+    .btn-inv-search { font-size:16px; padding:10px 14px; border-radius:8px; }
+    .inv-search-count { grid-column:1 / -1; font-size:12px; }
+    input, button, .btn, .history-search, .btn-clear { font-size: 16px; }
+    input { min-height: 34px; padding: 7px; }
+    .btn { width: 100%; padding: 10px 12px; margin-top: 8px; }
+    .btn-calc { font-size: 17px; padding: 13px; border-radius: 8px; }
+    .calc-top { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: center; }
+    .target-mass-input, .target-mol-input, .target-formula-input { width: 100% !important; }
+    .sg-box { font-size: 14px; border-radius: 8px; }
+    .sg-title-row { font-size: 16px; }
+    .sg-ratio-row { gap: 8px; }
+    .sg-input { width: 88px !important; min-height: 34px; }
+    .sg-flex { display: flex; flex-direction: column; gap: 10px; }
+    .sg-chem-row { display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; margin-top: 0 !important; }
+    .sg-field { flex: 1 1 210px; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+    .sg-field .sg-input { width: 110px !important; }
+    .table-scroll { border: 1px solid #eef2f3; border-radius: 8px; background: #fff; }
+    #invTab { min-width: 820px; font-size: 12px; }
+    th, td { padding: 6px 4px; }
+    .result-box { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .result-box table { min-width: 360px; }
+    .history-head { align-items:flex-start; flex-direction:column; }
+    .history-tools { flex-direction: column; align-items: stretch; }
+    .btn-clear { padding: 10px; }
+    .history-list { max-height: 360px; }
+    .history-card { padding: 10px; border-radius: 8px; }
+    .history-actions { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; }
+    .btn-mini { font-size: 13px; padding: 8px 5px; }
+    .tips-box { font-size: 13px; }
+    .enable-head-box { min-width:70px; }
+    .btn-enable-mini { font-size:11px; padding:3px 5px; }
+    .detail-summary { grid-template-columns: 1fr; }
+    .detail-table { min-width: 720px; }
+    .mobile-note { display:block; font-size:12px; color:#7f8c8d; margin:6px 0 10px 0; line-height:1.5; }
+  }
+
+
+  /* ===== PWA / 分享版工具 ===== */
+  .pwa-tools {
+    display:flex;
+    align-items:center;
+    gap:5px;
+    flex-wrap:wrap;
+    margin:-2px 0 10px 0;
+    padding:6px;
+    border:1px solid #e4eaee;
+    border-radius:6px;
+    background:#f8fafb;
+  }
+  .pwa-tool-btn {
+    flex:1 1 82px;
+    min-width:0;
+    border:1px solid #d8e1e6;
+    border-radius:5px;
+    background:#fff;
+    color:#46616f;
+    cursor:pointer;
+    font-size:11px;
+    line-height:1.2;
+    padding:6px 5px;
+    white-space:nowrap;
+  }
+  .pwa-tool-btn:hover { background:#eef4f7; border-color:#c8d5dc; }
+  .pwa-tool-btn:active { transform:translateY(1px); }
+  .pwa-status {
+    flex:1 0 100%;
+    font-size:10px;
+    color:#8a989f;
+    line-height:1.35;
+    padding:0 2px;
+  }
+  .pwa-status b { color:#59717e; font-weight:600; }
+  .pwa-modal-mask {
+    position:fixed;
+    inset:0;
+    z-index:12000;
+    background:rgba(27,39,45,0.42);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:16px;
+    box-sizing:border-box;
+  }
+  .pwa-modal {
+    width:min(440px, 94vw);
+    background:#fff;
+    border-radius:10px;
+    box-shadow:0 12px 34px rgba(0,0,0,0.22);
+    padding:16px;
+    text-align:left;
+    color:#34495e;
+  }
+  .pwa-modal h3 { margin:0 0 8px 0; font-size:17px; color:#2c3e50; }
+  .pwa-modal p, .pwa-modal li { font-size:13px; line-height:1.6; }
+  .pwa-modal ol { margin:8px 0; padding-left:24px; }
+  .pwa-modal-actions { display:flex; justify-content:flex-end; margin-top:10px; }
+  .pwa-modal-close {
+    border:none; border-radius:5px; background:#657b86; color:#fff;
+    padding:7px 14px; cursor:pointer; font-size:13px;
+  }
+  .share-version-tip {
+    font-size:11px;
+    color:#687a83;
+    line-height:1.55;
+  }
+  @media (max-width: 900px) {
+    .pwa-tools { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+    .pwa-tool-btn { width:100%; font-size:12px; min-height:32px; }
+    .pwa-status { grid-column:1 / -1; font-size:11px; }
+  }
+
+
+  /* ===== zyC 品牌签名 ===== */
+  .brand-signature {
+    float:right;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    margin-left:10px;
+    padding:2px 7px 3px;
+    border:1px solid #d7e1e6;
+    border-radius:999px;
+    background:#f5f8fa;
+    color:#5f7886;
+    font-size:12px;
+    font-weight:600;
+    letter-spacing:1.6px;
+    line-height:1.25;
+    text-transform:none;
+    user-select:none;
+  }
+  @media (max-width:900px) {
+    .brand-signature {
+      font-size:11px;
+      padding:2px 6px;
+      letter-spacing:1.3px;
+      margin-top:1px;
+    }
+  }
+
+</style>
+<meta name="theme-color" content="#3f6f8f">
+<meta name="description" content="实验室配方与摩尔计算工具，支持药品库、历史记录、离线使用和数据备份。">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="zyC 配方计算器">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<link rel="icon" href="./icons/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="./icons/favicon-64.png">
+</head>
+<body>
+
+<div class="panel panel-left">
+  <h2>我的药品库 (支持中英双语检索)</h2>
+  <div class="mobile-note">手机端药品库可以左右滑动；日常计算建议先用上方计算区。</div>
+  <div class="inv-search-tools">
+    <div class="inv-search-wrap">
+      <input type="text" id="invSearch" class="inv-search-input" placeholder="输入即筛选；可搜主元素/药品/厂家/规格，例如 La、#3、硝酸" oninput="filterInventory()">
+      <button type="button" class="inv-search-clear" onclick="clearInventorySearch()" title="清除搜索">×</button>
+    </div>
+    <span id="invSearchCount" class="inv-search-count">显示全部药品</span>
+  </div>
+  <div id="invNoMatch" class="inv-no-match">没有找到匹配的药品；清空搜索框后会恢复全部药品库。</div>
+  <div class="table-scroll">
+  <table id="invTab">
+    <thead>
+      <tr>
+        <th class="inv-enable-col"><div class="enable-head-box"><span>启用</span><div class="enable-head-actions"><button type="button" class="btn-enable-mini btn-enable-all" onclick="setAllEnabled(true)">全选</button><button type="button" class="btn-enable-mini btn-enable-none" onclick="setAllEnabled(false)">取消</button></div></div></th>
+        <th style="width: 142px;">试剂名称 (需含化学式)</th>
+        <th style="width: 50px;">M (g/mol)</th>
+        <th style="width: 42px;">纯度%</th>
+        <th class="inv-main-el" style="width: 38px;">主元素</th>
+        <th class="inv-sec-el" style="width: 38px;">次元素</th>
+        <th style="width: 50px;">规格</th>
+        <th style="width: 44px;">厂家</th>
+        <th style="width: 72px;">备注(选填)</th>
+        <th style="width: 25px;">操作</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  </div>
+  <div style="font-size:11px;color:#7f8c8d;margin-top:8px;">新增/编辑时保持当前位置；点击“保存库”后才会按主元素分组，并在组内自动排序。</div>
+  <button class="btn" style="background:#3498db; color:white;" onclick="addRow()">+ 新增试剂</button>
+  <button id="saveBtn" class="btn" style="background:#27ae60; color:white;" onclick="saveInv(this)">💾 保存库</button>
+</div>
+
+<div class="panel panel-calc">
+  <h2>计算设置 <span class="brand-signature" title="zyC">zyC</span></h2>
+  <div class="pwa-tools" aria-label="分享与备份工具">
+    <button type="button" id="installAppBtn" class="pwa-tool-btn" onclick="installPwaApp()">📲 添加到主屏幕</button>
+    <button type="button" class="pwa-tool-btn" onclick="exportAppBackup()">⬇️ 导出备份</button>
+    <button type="button" class="pwa-tool-btn" onclick="document.getElementById('backupImportInput').click()">⬆️ 导入备份</button>
+    <button type="button" class="pwa-tool-btn" onclick="sharePwaApp()">🔗 分享网页</button>
+    <input id="backupImportInput" type="file" accept=".json,application/json" style="display:none" onchange="importAppBackupFile(event)">
+    <div id="pwaStatus" class="pwa-status">网页发布后可离线使用；药品库和历史记录默认保存在当前设备。</div>
+  </div>
+
+  <div class="calc-top">
+    <label for="tMol">目标摩尔数(mol):</label> <input type="number" id="tMol" value="0.004" step="0.0001" class="target-mol-input" oninput="updateMolMassPreview()"> 
+    <label for="tF">化学式:</label> <input type="text" id="tF" value="Sm1Ba0.5Sr0.5Fe2O5.8Cl0.4" class="target-formula-input" oninput="updateMolMassPreview()">
+  </div>
+  <div id="molMassPreview" class="mol-preview">理论样品质量会随摩尔数和化学式自动更新。</div>
+
+<div class="sg-box">
+  <label class="sg-title-row">
+    <input type="checkbox" id="useSG" checked onchange="toggleSG()" style="width: auto; margin-right: 8px; margin-top: 0;">
+    <span>启用溶胶-凝胶配置</span>
+  </label>
+  
+  <div id="sgPanel" class="sg-panel" style="padding-left: 5px;">
+    <div class="sg-ratio-row">
+      <span>比例 (金属:E:C) = 1 :</span>
+      <input type="number" id="rE" class="sg-input" value="1.0">
+      <span>:</span>
+      <input type="number" id="rC" class="sg-input" value="1.5">
+    </div>
+    <div class="sg-flex">
+      <div class="sg-chem-row">
+        <label class="sg-field"><span>EDTA：M =</span><input type="number" id="mE" class="sg-input" value="292.24"></label>
+        <label class="sg-field"><span>纯度 =</span><input type="number" id="pE" class="sg-input" value="99.5"><span>%</span></label>
+      </div>
+      <div class="sg-chem-row">
+        <label class="sg-field"><span>柠檬酸：M =</span><input type="number" id="mC" class="sg-input" value="192.12"></label>
+        <label class="sg-field"><span>纯度 =</span><input type="number" id="pC" class="sg-input" value="99.5"><span>%</span></label>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <button class="btn btn-calc" onclick="calc()">🚀 智能配料计算</button>
+  <div id="res"></div>
+
+  <div class="history-box">
+    <div class="history-head">
+      <h3>📜 历史查询</h3>
+      <span style="font-size:11px;color:#95a5a6;">自动保存最近 99 条</span>
+    </div>
+    <div class="history-tools">
+      <input type="text" id="historySearch" class="history-search" placeholder="搜索化学式 / 试剂 / 日期" oninput="renderHistory(this.value)">
+      <button class="btn-clear" onclick="clearHistory()">清空</button>
+    </div>
+    <div id="historyList" class="history-list"></div>
+  </div>
+
+</div>
+
+<script>
+  // 元素相对原子质量/放射性元素最长寿命核素质量数；用于目标化学式的摩尔质量计算。
+  // 注：部分元素在自然样品中是区间原子量，此处采用常用简化值，统一保留 4 位小数。
+  const AW = {
+    "H":1.0080, "He":4.0026, "Li":6.9400, "Be":9.0122, "B":10.8100, "C":12.0110, "N":14.0070, "O":15.9990,
+    "F":18.9984, "Ne":20.1797, "Na":22.9898, "Mg":24.3050, "Al":26.9815, "Si":28.0850, "P":30.9738, "S":32.0600,
+    "Cl":35.4500, "Ar":39.9500, "K":39.0983, "Ca":40.0780, "Sc":44.9559, "Ti":47.8670, "V":50.9415, "Cr":51.9961,
+    "Mn":54.9380, "Fe":55.8450, "Co":58.9332, "Ni":58.6934, "Cu":63.5460, "Zn":65.3800, "Ga":69.7230, "Ge":72.6300,
+    "As":74.9216, "Se":78.9710, "Br":79.9040, "Kr":83.7980, "Rb":85.4678, "Sr":87.6200, "Y":88.9058, "Zr":91.2220,
+    "Nb":92.9064, "Mo":95.9500, "Tc":97.0000, "Ru":101.0700, "Rh":102.9055, "Pd":106.4200, "Ag":107.8682, "Cd":112.4140,
+    "In":114.8180, "Sn":118.7100, "Sb":121.7600, "Te":127.6000, "I":126.9045, "Xe":131.2930, "Cs":132.9055, "Ba":137.3270,
+    "La":138.9055, "Ce":140.1160, "Pr":140.9077, "Nd":144.2420, "Pm":145.0000, "Sm":150.3600, "Eu":151.9640, "Gd":157.2490,
+    "Tb":158.9254, "Dy":162.5000, "Ho":164.9303, "Er":167.2590, "Tm":168.9342, "Yb":173.0450, "Lu":174.9667, "Hf":178.4860,
+    "Ta":180.9479, "W":183.8400, "Re":186.2070, "Os":190.2300, "Ir":192.2170, "Pt":195.0840, "Au":196.9666, "Hg":200.5920,
+    "Tl":204.3835, "Pb":207.2000, "Bi":208.9804, "Po":209.0000, "At":210.0000, "Rn":222.0000, "Fr":223.0000, "Ra":226.0000,
+    "Ac":227.0000, "Th":232.0377, "Pa":231.0359, "U":238.0289, "Np":237.0000, "Pu":244.0000, "Am":243.0000, "Cm":247.0000,
+    "Bk":247.0000, "Cf":251.0000, "Es":252.0000, "Fm":257.0000, "Md":258.0000, "No":259.0000, "Lr":266.0000, "Rf":267.0000,
+    "Db":268.0000, "Sg":269.0000, "Bh":270.0000, "Hs":269.0000, "Mt":278.0000, "Ds":281.0000, "Rg":282.0000, "Cn":285.0000,
+    "Nh":286.0000, "Fl":289.0000, "Mc":290.0000, "Lv":293.0000, "Ts":294.0000, "Og":294.0000
+  };
+  const INV_KEY = "inv_v_mobile_prefilled_v1";
+  const HISTORY_KEY = "calc_history_v1";
+  let latestCalcDetail = null;
+
+  const DEFAULT_INV = [
+    { sel:true,  name:"Sr(OH)2", el:"Sr", sec:"", mw:265.76, p:99.50, rem:"" },
+    { sel:true,  name:"Sm(NO3)3·6H2O", el:"Sm", sec:"", mw:444.47, p:99.90, rem:"" },
+    { sel:true,  name:"Fe(NO3)3·9H2O", el:"Fe", sec:"", mw:404.00, p:99.90, rem:"" },
+    { sel:true,  name:"Ca(NO3)2·4H2O", el:"Ca", sec:"", mw:236.15, p:99.00, rem:"" },
+    { sel:true,  name:"NiC4H6O4·4H2O", el:"Ni", sec:"", mw:248.84, p:99.00, rem:"乙酸镍四水合物" },
+    { sel:true,  name:"KNO2", el:"K", sec:"", mw:85.10, p:99.00, rem:"亚硝酸钾" },
+    { sel:true,  name:"偏钨酸铵水合物 (NH4)6H2W12O40·xH2O", el:"W", sec:"", mw:2956.26, p:99.50, rem:"按W12计" },
+    { sel:false, name:"柠檬酸", el:"", sec:"", mw:192.12, p:99.50, rem:"络合剂；右侧已单独计算" },
+    { sel:false, name:"EDTA", el:"", sec:"", mw:292.24, p:99.50, rem:"络合剂；右侧已单独计算" },
+    { sel:true,  name:"水合草酸铌 C10H5NbO20", el:"Nb", sec:"", mw:538.04, p:98.00, rem:"" },
+    { sel:true,  name:"SrCl2·6H2O", el:"Sr", sec:"Cl", mw:266.62, p:99.99, rem:"供Cl，同时引入Sr" },
+    { sel:true,  name:"氟化锶 SrF2", el:"Sr", sec:"F", mw:125.62, p:99.99, rem:"供F，同时引入Sr" },
+    { sel:false, name:"亚硝酸钾 KNO2", el:"K", sec:"", mw:85.10, p:99.00, rem:"与KNO2重复，备用别名" },
+    { sel:true,  name:"Ba(NO3)2", el:"Ba", sec:"", mw:261.34, p:99.50, rem:"" },
+    { sel:true,  name:"La(NO3)3·6H2O", el:"La", sec:"", mw:433.01, p:99.90, rem:"硝酸镧六水合物" },
+    { sel:true,  name:"Gd(NO3)3·6H2O", el:"Gd", sec:"", mw:451.35, p:99.90, rem:"硝酸钆六水合物" },
+    { sel:true,  name:"Co(NO3)2·6H2O", el:"Co", sec:"", mw:291.03, p:99.00, rem:"硝酸钴六水合物" },
+    { sel:true,  name:"Pr(NO3)3·6H2O", el:"Pr", sec:"", mw:435.01, p:99.90, rem:"硝酸镨六水合物" },
+    { sel:true,  name:"Nd(NO3)3·6H2O", el:"Nd", sec:"", mw:438.34, p:99.90, rem:"硝酸钕六水合物" },
+    { sel:true,  name:"Ce(NO3)3·6H2O", el:"Ce", sec:"", mw:434.22, p:99.90, rem:"硝酸铈六水合物" },
+    { sel:true,  name:"Y(NO3)3·6H2O", el:"Y", sec:"", mw:383.01, p:99.90, rem:"硝酸钇六水合物" },
+    { sel:true,  name:"Mg(NO3)2·6H2O", el:"Mg", sec:"", mw:256.40, p:99.00, rem:"硝酸镁六水合物" },
+    { sel:true,  name:"Bi(NO3)3·5H2O", el:"Bi", sec:"", mw:485.07, p:99.00, rem:"硝酸铋五水合物" },
+    { sel:false, name:"硝酸镓水合物 Ga(NO3)3·xH2O", el:"Ga", sec:"", mw:255.74, p:99.90, rem:"M为无水Ga(NO3)3理论值；使用前按瓶身水合数修正并启用" },
+    { sel:true,  name:"Cr(NO3)3·9H2O", el:"Cr", sec:"", mw:400.14, p:99.00, rem:"硝酸铬九水合物" },
+    { sel:true,  name:"Mn(NO3)2·4H2O", el:"Mn", sec:"", mw:251.01, p:99.00, rem:"硝酸锰四水合物" },
+    { sel:true,  name:"Cu(NO3)2·3H2O", el:"Cu", sec:"", mw:241.60, p:99.00, rem:"硝酸铜三水合物" },
+    { sel:true,  name:"Zn(NO3)2·6H2O", el:"Zn", sec:"", mw:297.48, p:99.00, rem:"硝酸锌六水合物" },
+    { sel:true,  name:"Al(NO3)3·9H2O", el:"Al", sec:"", mw:375.13, p:99.00, rem:"硝酸铝九水合物" },
+    { sel:false, name:"Sr(NO3)2", el:"Sr", sec:"", mw:211.63, p:99.00, rem:"备用：如不用Sr(OH)2可启用" },
+    { sel:true,  name:"Ni(NO3)2·6H2O", el:"Ni", sec:"", mw:290.79, p:99.00, rem:"硝酸镍六水合物；如需替代乙酸镍请调整顺序/启用状态" }
+  ];
+
+  const dict = Array.from(new Set(DEFAULT_INV.map(i => i.name).concat([
+    "Gd(NO3)3·6H2O", "La(NO3)3·6H2O", "Co(NO3)2·6H2O", "Pr(NO3)3·6H2O", "Nd(NO3)3·6H2O",
+    "Mg(NO3)2·6H2O", "Bi(NO3)3·5H2O", "硝酸镓水合物 Ga(NO3)3·xH2O",
+    "Cr(NO3)3·9H2O", "Mn(NO3)2·4H2O", "Cu(NO3)2·3H2O", "Zn(NO3)2·6H2O", "Al(NO3)3·9H2O"
+  ])));
+
+
+  function normalizeInvName(name) {
+    return String(name || "").replace(/\s+/g, "").toLowerCase();
+  }
+
+  function mergeDefaultInv(stored) {
+    let list = Array.isArray(stored) ? stored.slice() : [];
+    let seen = new Set(list.map(it => normalizeInvName(it.name)));
+    DEFAULT_INV.forEach(it => {
+      let key = normalizeInvName(it.name);
+      if(key && !seen.has(key)) {
+        list.push({...it});
+        seen.add(key);
+      }
+    });
+    return list;
+  }
+
+  window.onload = () => {
+    let s = localStorage.getItem(INV_KEY);
+    let data = DEFAULT_INV;
+    if(s) {
+      try { data = JSON.parse(s); } catch(e) { data = DEFAULT_INV; }
+    }
+    data = sortInventoryData(mergeDefaultInv(data));
+    render(data);
+    localStorage.setItem(INV_KEY, JSON.stringify(data));
+    renderHistory();
+    updateMolMassPreview();
+  };
+
+  function toggleSG() { document.getElementById("sgPanel").style.display = document.getElementById("useSG").checked ? "block" : "none"; }
+
+  function setupAutocomplete() {
+    document.querySelectorAll(".i-n").forEach(inp => {
+      if(inp.dataset.bound) return;
+      inp.dataset.bound = true;
+      
+      inp.addEventListener("input", function() {
+        let a, b, val = this.value;
+        closeAllLists();
+        if (!val) return false;
+        
+        a = document.createElement("DIV");
+        a.setAttribute("class", "autocomplete-items");
+        this.parentNode.appendChild(a);
+        
+        for (let i = 0; i < dict.length; i++) {
+          if (dict[i].toUpperCase().includes(val.toUpperCase())) {
+            b = document.createElement("DIV");
+            let regex = new RegExp(`(${val})`, "gi");
+            b.innerHTML = dict[i].replace(regex, "<strong style='color:#e74c3c;'>$1</strong>");
+            b.innerHTML += `<input type='hidden' value='${dict[i]}'>`;
+            b.addEventListener("click", function() {
+              inp.value = this.getElementsByTagName("input")[0].value;
+              closeAllLists();
+            });
+            a.appendChild(b);
+          }
+        }
+      });
+    });
+  }
+
+  function closeAllLists(elmnt) {
+    let x = document.getElementsByClassName("autocomplete-items");
+    for (let i = 0; i < x.length; i++) {
+      if (elmnt != x[i]) x[i].parentNode.removeChild(x[i]);
+    }
+  }
+  document.addEventListener("click", function (e) { closeAllLists(e.target); });
+
+  function attrEsc(v) {
+    return String(v ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function getFormulaSortKey(it) {
+    const name = String(it?.name || "").trim();
+    // 优先从试剂名称中抓取第一个英文化学式片段；例如“氟化锶 SrF2”会按 SrF2 排序，而不是按中文“氟”。
+    const m = name.match(/[A-Z][A-Za-z0-9\(\)\[\]·\.\-]*/);
+    if(m && m[0]) return m[0].replace(/\s+/g, "").toUpperCase();
+    const el = String(it?.el || "").trim();
+    return el ? el.toUpperCase() : "";
+  }
+
+  function getMainGroupKey(it) {
+    const el = String(it?.el || "").trim();
+    return el ? el : "__OTHER__";
+  }
+
+  function getMainGroupLabel(itOrKey) {
+    const key = typeof itOrKey === "string" ? itOrKey : getMainGroupKey(itOrKey);
+    return key === "__OTHER__" ? "其他" : key;
+  }
+
+  function sortInventoryData(list) {
+    return (Array.isArray(list) ? list : [])
+      .map((it, idx) => ({...it, __sortOriginalIndex: idx}))
+      .sort((a, b) => {
+        // 第一层：按主元素分组；未填写主元素的统一放在最后的“其他”。
+        const ga = getMainGroupKey(a);
+        const gb = getMainGroupKey(b);
+        if(ga !== gb) {
+          if(ga === "__OTHER__") return 1;
+          if(gb === "__OTHER__") return -1;
+          const byGroup = ga.localeCompare(gb, "en", {numeric:true, sensitivity:"base"});
+          if(byGroup) return byGroup;
+        }
+
+        // 第二层：同一主元素内沿用原版逻辑，按名称中的化学式排序。
+        const ka = getFormulaSortKey(a);
+        const kb = getFormulaSortKey(b);
+        if(!ka && !kb) return a.__sortOriginalIndex - b.__sortOriginalIndex;
+        if(!ka) return 1;
+        if(!kb) return -1;
+        const byFormula = ka.localeCompare(kb, "en", {numeric:true, sensitivity:"base"});
+        if(byFormula) return byFormula;
+        return String(a.name || "").localeCompare(String(b.name || ""), "en", {numeric:true, sensitivity:"base"});
+      })
+      .map(({__sortOriginalIndex, ...it}, idx) => ({
+        ...it,
+        maker: it.maker ?? it.factory ?? it.manufacturer ?? "",
+        spec: it.spec ?? "",
+        libIndex: idx + 1
+      }));
+  }
+
+  function inventoryDataRowHtml(it, idx, groupKey, extraClass = "") {
+    return `<tr class="inv-data-row ${extraClass}" data-group="${attrEsc(groupKey)}" data-lib-index="${idx+1}">
+      <td class="inv-enable-col"><input type="checkbox" class="i-x" ${it.sel?'checked':''}></td>
+      <td><div class="inv-name-cell-wrap"><span class="lib-index-mini" title="库编号 #${idx+1}">${idx+1}</span><div class="autocomplete-wrapper"><input type="text" class="i-n" value="${attrEsc(it.name)}" autocomplete="off" placeholder="搜中文/字母"></div></div></td>
+      <td><input type="number" class="i-m" value="${Number.isFinite(Number(it.mw)) ? Number(it.mw) : ''}"></td>
+      <td><input type="number" class="i-p" value="${Number.isFinite(Number(it.p)) ? Number(it.p) : ''}"></td>
+      <td class="inv-main-el"><input type="text" class="i-e" value="${attrEsc(it.el || '')}"></td>
+      <td class="inv-sec-el"><input type="text" class="i-s" value="${attrEsc(it.sec||'')}"></td>
+      <td><input type="text" class="i-spec inv-mini-input" value="${attrEsc(it.spec || '')}" title="${attrEsc(it.spec || '')}" placeholder="2500g"></td>
+      <td><input type="text" class="i-maker inv-mini-input" value="${attrEsc(it.maker || '')}" title="${attrEsc(it.maker || '')}"></td>
+      <td><input type="text" class="i-rem" value="${attrEsc(it.rem||'')}" placeholder="选填"></td>
+      <td><button class="btn-danger" style="font-size:10px; cursor:pointer;" onclick="removeInventoryRow(this)">X</button></td>
+    </tr>`;
+  }
+
+  function render(data) {
+    const b = document.querySelector("#invTab tbody");
+    b.innerHTML = "";
+
+    // render 只用于“已保存/初次载入”的状态，所以这里按主元素分组并排序。
+    data = sortInventoryData(data);
+
+    let lastGroup = null;
+    data.forEach((it, idx) => {
+      const groupKey = getMainGroupKey(it);
+      if(groupKey !== lastGroup) {
+        if(lastGroup !== null) {
+          b.insertAdjacentHTML("beforeend", `<tr class="inv-group-spacer" data-for-group="${attrEsc(groupKey)}"><td colspan="10"></td></tr>`);
+        }
+        const groupCount = data.filter(x => getMainGroupKey(x) === groupKey).length;
+        b.insertAdjacentHTML("beforeend", `<tr class="inv-group-header" data-group="${attrEsc(groupKey)}">
+          <td colspan="10" title="主元素分组：${attrEsc(getMainGroupLabel(groupKey))}"><span class="inv-group-title">${attrEsc(getMainGroupLabel(groupKey))}</span><span class="inv-group-sub">主元素 · ${groupCount} 种</span></td>
+        </tr>`);
+        lastGroup = groupKey;
+      }
+      b.insertAdjacentHTML("beforeend", inventoryDataRowHtml(it, idx, groupKey));
+    });
+
+    setupAutocomplete();
+    bindInventoryLiveFilter();
+    filterInventory();
+  }
+
+  function bindInventoryLiveFilter() {
+    document.querySelectorAll("#invTab tbody .inv-data-row input").forEach(inp => {
+      if(inp.dataset.invLiveBound) return;
+      inp.dataset.invLiveBound = "true";
+      inp.addEventListener("input", filterInventory);
+      inp.addEventListener("change", filterInventory);
+      // 注意：这里不再自动保存/排序。用户填写完整后点击“保存库”才会重新分组排序。
+    });
+  }
+
+  function getInventoryRowText(tr) {
+    let cells = [
+      tr.querySelector(".i-n")?.value || "",
+      tr.querySelector(".i-maker")?.value || "",
+      tr.querySelector(".i-spec")?.value || "",
+      tr.querySelector(".i-e")?.value || "",
+      tr.querySelector(".i-s")?.value || "",
+      tr.querySelector(".i-m")?.value || "",
+      tr.querySelector(".i-p")?.value || "",
+      tr.querySelector(".i-rem")?.value || ""
+    ];
+    let idx = (tr.dataset.libIndex || tr.querySelector(".lib-index-mini")?.textContent || "").trim();
+    if(idx) cells.push(idx, "#" + idx);
+    return cells.join(" ").toLowerCase();
+  }
+
+  function filterInventory() {
+    const inp = document.getElementById("invSearch");
+    const kw = inp ? inp.value.trim().toLowerCase() : "";
+    const rows = Array.from(document.querySelectorAll("#invTab tbody .inv-data-row"));
+    let visible = 0;
+
+    rows.forEach(tr => {
+      const ok = !kw || getInventoryRowText(tr).includes(kw);
+      tr.style.display = ok ? "" : "none";
+      if(ok) visible++;
+    });
+
+    // 分组标题只在该组至少有一条可见药品时显示。
+    const headers = Array.from(document.querySelectorAll("#invTab tbody .inv-group-header"));
+    let visibleGroupCount = 0;
+    headers.forEach(h => {
+      const groupKey = h.dataset.group || "";
+      const anyVisible = rows.some(r => r.dataset.group === groupKey && r.style.display !== "none");
+      const spacer = h.previousElementSibling && h.previousElementSibling.classList.contains("inv-group-spacer")
+        ? h.previousElementSibling : null;
+
+      h.style.display = anyVisible ? "" : "none";
+      if(spacer) spacer.style.display = (anyVisible && visibleGroupCount > 0) ? "" : "none";
+      if(anyVisible) visibleGroupCount++;
+    });
+
+    // 新增但尚未保存的行保持独立；它前面的空行跟随该行显示/隐藏。
+    document.querySelectorAll("#invTab tbody .inv-new-row").forEach(r => {
+      const prev = r.previousElementSibling;
+      if(prev && prev.classList.contains("inv-new-spacer")) {
+        prev.style.display = r.style.display === "none" ? "none" : "";
+      }
+    });
+
+    const count = document.getElementById("invSearchCount");
+    if(count) count.textContent = kw ? `匹配 ${visible} / ${rows.length} 条` : `显示全部 ${rows.length} 条`;
+    const noMatch = document.getElementById("invNoMatch");
+    if(noMatch) noMatch.style.display = rows.length && visible === 0 ? "block" : "none";
+  }
+
+  function clearInventorySearch() {
+    const inp = document.getElementById("invSearch");
+    if(inp) inp.value = "";
+    filterInventory();
+  }
+
+  function collectInventoryData() {
+    const d = [];
+    document.querySelectorAll("#invTab tbody .inv-data-row").forEach((tr, idx) => {
+      d.push({
+        libIndex: idx + 1,
+        sel: !!tr.querySelector(".i-x")?.checked,
+        name: tr.querySelector(".i-n")?.value.trim() || "",
+        maker: tr.querySelector(".i-maker")?.value.trim() || "",
+        spec: tr.querySelector(".i-spec")?.value.trim() || "",
+        el: tr.querySelector(".i-e")?.value.trim() || "",
+        sec: tr.querySelector(".i-s")?.value.trim() || "",
+        mw: parseFloat(tr.querySelector(".i-m")?.value),
+        p: parseFloat(tr.querySelector(".i-p")?.value),
+        rem: tr.querySelector(".i-rem")?.value.trim() || ""
+      });
+    });
+    return d;
+  }
+
+  function persistInventoryCurrentOrder() {
+    const d = collectInventoryData();
+    localStorage.setItem(INV_KEY, JSON.stringify(d));
+    return d;
+  }
+
+  function addRow() {
+    clearInventorySearch();
+    const b = document.querySelector("#invTab tbody");
+    const idx = document.querySelectorAll("#invTab tbody .inv-data-row").length;
+    const blank = {sel:true, name:"", maker:"", spec:"", el:"", sec:"", mw:100, p:99.9, rem:""};
+
+    // 新增行单独留一个空行，并固定在当前位置；填写过程中绝不自动跳组。
+    b.insertAdjacentHTML("beforeend", `<tr class="inv-group-spacer inv-new-spacer"><td colspan="10"></td></tr>`);
+    b.insertAdjacentHTML("beforeend", inventoryDataRowHtml(blank, idx, "__NEW__", "inv-new-row"));
+
+    setupAutocomplete();
+    bindInventoryLiveFilter();
+    filterInventory();
+
+    const newRow = b.querySelector(".inv-new-row:last-of-type");
+    const nameInput = newRow?.querySelector(".i-n");
+    if(nameInput) {
+      nameInput.focus();
+      nameInput.scrollIntoView({behavior:"smooth", block:"center"});
+    }
+  }
+
+  function removeInventoryRow(btn) {
+    const tr = btn.closest(".inv-data-row");
+    if(!tr) return;
+    const prev = tr.previousElementSibling;
+    tr.remove();
+    if(prev && prev.classList.contains("inv-new-spacer")) prev.remove();
+
+    // 删除操作仍即时写入本地库，但不触发重新排序；点击“保存库”时再统一重排。
+    persistInventoryCurrentOrder();
+    filterInventory();
+  }
+
+  function setAllEnabled(enabled) {
+    const kw = document.getElementById("invSearch") ? document.getElementById("invSearch").value.trim() : "";
+    const rows = Array.from(document.querySelectorAll("#invTab tbody .inv-data-row"));
+    rows.forEach(tr => {
+      if(!kw || tr.style.display !== "none") {
+        const cb = tr.querySelector(".i-x");
+        if(cb) cb.checked = !!enabled;
+      }
+    });
+    // 只保存当前状态，不重新排序/跳位。
+    persistInventoryCurrentOrder();
+    filterInventory();
+  }
+
+  function saveInv(btnElem) {
+    let d = collectInventoryData();
+
+    // 只有明确点击保存时才按主元素分组 + 组内化学式排序。
+    d = sortInventoryData(d);
+    localStorage.setItem(INV_KEY, JSON.stringify(d));
+    render(d);
+
+    if (btnElem && !btnElem.dataset.saving) {
+      btnElem.dataset.saving = "true";
+      btnElem.innerHTML = "✅ 已保存并分组排序！";
+      btnElem.style.background = "#219a52";
+
+      setTimeout(() => {
+        btnElem.innerHTML = "💾 保存库";
+        btnElem.style.background = "#27ae60";
+        delete btnElem.dataset.saving;
+      }, 1500);
+    }
+    return d;
+  }
+
+
+  function getC(f, el) {
+    if(!el) return 1;
+    let m = new RegExp(el+"(?![a-z])(\\d*)").exec(f);
+    return (m && m[1]!=="") ? parseInt(m[1]) : 1;
+  }
+
+  function esc(v) {
+    return String(v ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function stripHtml(v) {
+    let tmp = document.createElement("div");
+    tmp.innerHTML = String(v ?? "");
+    return tmp.textContent || tmp.innerText || "";
+  }
+
+  function fmtNum(v, digits = 6) {
+    let n = Number(v);
+    if(!Number.isFinite(n)) return "-";
+    let s = n.toFixed(digits);
+    return s.replace(/\.?0+$/, "");
+  }
+
+  function fmtMass(v) {
+    let n = Number(v);
+    return Number.isFinite(n) ? n.toFixed(4) : "-";
+  }
+
+  function parseTargetFormula(tForm, showAlert = true) {
+    tForm = String(tForm || "").replace(/\s+/g,"");
+    if(!tForm) {
+      if(showAlert) alert("请先填写目标化学式。");
+      return null;
+    }
+
+    let reg = /([A-Z][a-z]*)([0-9]*\.?[0-9]*)/g, m;
+    let tE = {}, tMW = 0, tMe = 0, parsedEnd = 0;
+    let unknownEls = [], repeatedEls = [], badCoeff = [], terms = [];
+
+    while((m=reg.exec(tForm))!==null) {
+      if(m.index !== parsedEnd) {
+        if(showAlert) {
+          alert(`化学式包含暂不支持或无法识别的片段：“${tForm.slice(parsedEnd, m.index)}”。\n请使用类似 Sm1Ba0.7Ca0.3Fe2O6 的直写格式，暂不支持括号。`);
+        }
+        return null;
+      }
+      parsedEnd = reg.lastIndex;
+
+      let el = m[1], co = m[2] === "" ? 1 : parseFloat(m[2]);
+      if(!Number.isFinite(co) || co <= 0) badCoeff.push(el + (m[2] || ""));
+      if(!Object.prototype.hasOwnProperty.call(AW, el)) unknownEls.push(el);
+      if(Object.prototype.hasOwnProperty.call(tE, el)) repeatedEls.push(el);
+
+      tE[el] = co;
+      let aw = AW[el] || 0;
+      let subtotal = aw * co;
+      tMW += subtotal;
+      terms.push({ el, co, aw, subtotal });
+      if(el!=="O"&&el!=="Cl"&&el!=="F") tMe += co;
+    }
+
+    if(parsedEnd !== tForm.length) {
+      if(showAlert) alert(`化学式末尾包含暂不支持或无法识别的片段：“${tForm.slice(parsedEnd)}”。\n请检查是否有括号、中文符号或多余字符。`);
+      return null;
+    }
+    if(badCoeff.length) {
+      if(showAlert) alert(`化学式中存在无效系数：${badCoeff.join(", ")}。\n请检查数字是否正确。`);
+      return null;
+    }
+    if(repeatedEls.length) {
+      if(showAlert) alert(`化学式中元素重复出现：${[...new Set(repeatedEls)].join(", ")}。\n为避免覆盖系数导致算错，请合并后再输入，例如不要写 Ca0.3Ca。`);
+      return null;
+    }
+    if(unknownEls.length || !Number.isFinite(tMW) || tMW <= 0) {
+      if(showAlert) alert(`化学式中有未收录或无法识别的元素：${[...new Set(unknownEls)].join(", ")}。\n请检查元素符号大小写。`);
+      return null;
+    }
+    return { elements: tE, mw: tMW, metalCoeff: tMe, terms };
+  }
+
+  function updateMolMassPreview() {
+    const box = document.getElementById("molMassPreview");
+    if(!box) return;
+    const molEl = document.getElementById("tMol");
+    const formulaEl = document.getElementById("tF");
+    const tMol = parseFloat(molEl ? molEl.value : "");
+    const tForm = formulaEl ? formulaEl.value.replace(/\s+/g,"") : "";
+    const parsed = parseTargetFormula(tForm, false);
+
+    if(!Number.isFinite(tMol) || tMol <= 0) {
+      box.innerHTML = `请输入有效目标摩尔数；系统会自动换算理论样品质量。`;
+      return;
+    }
+    if(!parsed) {
+      box.innerHTML = `请输入有效化学式；当前仅支持类似 <code>Sm1Ba0.5Sr0.5Fe2O5.8Cl0.4</code> 的直写格式。`;
+      return;
+    }
+
+    const sampleMass = tMol * parsed.mw;
+    box.innerHTML = `理论样品质量：${fmtNum(tMol, 8)} mol × M(${esc(tForm)}) ${fmtNum(parsed.mw, 4)} g/mol = <b>${fmtMass(sampleMass)} g</b>（随输入自动更新）`;
+  }
+
+  function getItemTargetMol(it) {
+    let direct = Number(it?.targetMol);
+    if(Number.isFinite(direct) && direct > 0) return direct;
+
+    // 兼容旧版历史：旧记录中 targetMass 是输入质量，回填时按化学式分子质量折算为 mol。
+    let oldMass = Number(it?.targetMass);
+    let parsed = parseTargetFormula(it?.formula || "", false);
+    if(Number.isFinite(oldMass) && oldMass > 0 && parsed && parsed.mw > 0) return oldMass / parsed.mw;
+    return NaN;
+  }
+
+  function getItemSampleMass(it) {
+    let direct = Number(it?.sampleMass);
+    if(Number.isFinite(direct) && direct > 0) return direct;
+
+    let targetMol = getItemTargetMol(it);
+    let parsed = parseTargetFormula(it?.formula || "", false);
+    if(Number.isFinite(targetMol) && parsed) return targetMol * parsed.mw;
+
+    let oldMass = Number(it?.targetMass);
+    return Number.isFinite(oldMass) ? oldMass : NaN;
+  }
+
+  function getHistoryAmountText(it) {
+    let targetMol = getItemTargetMol(it);
+    let sampleMass = getItemSampleMass(it);
+    if(Number.isFinite(targetMol) && Number.isFinite(sampleMass)) {
+      return `${fmtNum(targetMol, 8)} mol / ${fmtMass(sampleMass)} g`;
+    }
+    if(Number.isFinite(Number(it?.targetMass))) return `${fmtMass(it.targetMass)} g`;
+    return "-";
+  }
+
+  function detailButtonHtml(id = "") {
+    if(id) {
+      return `<button class="btn btn-detail" onclick="showCalcDetailFromHistory('${esc(id)}')">🧾 查看分子质量与试剂计算过程</button>`;
+    }
+    return `<button class="btn btn-detail" onclick="showCalcDetail()">🧾 查看分子质量与试剂计算过程</button>`;
+  }
+
+  function showCalcDetail() {
+    if(!latestCalcDetail) {
+      alert("当前还没有可查看的计算过程，请先点击“智能配料计算”。");
+      return;
+    }
+    renderCalcDetail(latestCalcDetail);
+  }
+
+  function showCalcDetailFromHistory(id) {
+    let item = getHistory().find(it => it.id === id);
+    if(!item || !item.detail) {
+      alert("这条历史记录没有保存计算过程，请重新计算一次后再查看。");
+      return;
+    }
+    renderCalcDetail(item.detail);
+  }
+
+  function detailMetaHtml(r) {
+    const idxText = r.libIndex ? `#${r.libIndex}：` : `${esc(r.tag || "试剂")}：`;
+    const mwText = Number.isFinite(Number(r.mw)) ? `${fmtNum(Number(r.mw), 4)} g/mol` : "M未记录";
+    const purityText = Number.isFinite(Number(r.purity)) ? `${fmtNum(Number(r.purity), 4)}%` : "纯度未记录";
+    return `<div class="reagent-meta">
+      <span class="meta-pill meta-lib">${idxText}${mwText}，${purityText}</span>
+    </div>`;
+  }
+
+  function compactCalcHtml(r) {
+    if(r.calc && r.calc.kind === "secondary") {
+      return `<div class="calc-compact">
+        <b>供 ${esc(r.calc.secEl)}</b>：目标系数 ${fmtNum(r.calc.reqCoeff, 6)} ÷ 试剂中 ${esc(r.calc.secEl)} 系数 ${fmtNum(r.calc.secCoeff, 6)} = <b>${fmtNum(r.calc.unitCoeff, 8)}</b><br>
+        n(试剂) = ${fmtNum(r.calc.unitCoeff, 8)} × ${fmtNum(r.calc.targetMol, 8)} mol = <b>${fmtNum(r.calc.reagentMol, 10)} mol</b><br>
+        <span style="color:#7f8c8d;">同步扣除 ${esc(r.calc.mainEl)}：${fmtNum(r.calc.mainBefore, 6)} - ${fmtNum(r.calc.unitCoeff, 8)}×${fmtNum(r.calc.mainCoeff, 6)} = ${fmtNum(r.calc.mainAfter, 8)}</span>
+      </div>`;
+    }
+    if(r.calc && r.calc.kind === "main") {
+      return `<div class="calc-compact">
+        <b>${esc(r.calc.el)}</b>：剩余系数 ${fmtNum(r.calc.reqCoeff, 6)} ÷ 试剂中 ${esc(r.calc.el)} 系数 ${fmtNum(r.calc.reagentCoeff, 6)} = <b>${fmtNum(r.calc.unitCoeff, 8)}</b><br>
+        n(试剂) = ${fmtNum(r.calc.unitCoeff, 8)} × ${fmtNum(r.calc.targetMol, 8)} mol = <b>${fmtNum(r.calc.reagentMol, 10)} mol</b>
+      </div>`;
+    }
+    if(r.calc && r.calc.kind === "complexant") {
+      return `<div class="calc-compact">
+        金属总摩尔数 = ${fmtNum(r.calc.targetMol, 8)} mol × ${fmtNum(r.calc.metalCoeff, 6)} = <b>${fmtNum(r.calc.metalMol, 10)} mol</b><br>
+        n(${esc(r.name)}) = ${fmtNum(r.calc.metalMol, 10)} × 比例 ${fmtNum(r.calc.ratio, 6)} = <b>${fmtNum(r.calc.reagentMol, 10)} mol</b>
+      </div>`;
+    }
+    return `<div class="calc-compact">${(r.steps || []).map(s => esc(s)).join("<br>")}</div>`;
+  }
+
+  function compactMassHtml(r) {
+    if(r.calc && Number.isFinite(Number(r.calc.reagentMol)) && Number.isFinite(Number(r.mw)) && Number.isFinite(Number(r.purity))) {
+      return `<div class="calc-expression">${fmtNum(r.calc.reagentMol, 10)} mol × ${fmtNum(r.mw, 4)} g/mol ÷ ${fmtNum(Number(r.purity)/100, 6)} = <b>${fmtMass(r.mass)} g</b></div>`;
+    }
+    return `<div class="calc-expression">${(r.steps || []).slice(-1).map(s => esc(s)).join("<br>")}</div>`;
+  }
+
+  function renderCalcDetail(detail) {
+    const terms = detail.terms || [];
+    const reagentRows = detail.reagentRows || [];
+
+    let formulaExpr = terms.map(t => `${fmtNum(t.co, 6)}×${fmtNum(t.aw, 4)}`).join(" + ");
+    let formulaRows = terms.map(t => `<tr><td>${esc(t.el)}</td><td>${fmtNum(t.co, 6)}</td><td>${fmtNum(t.aw, 4)}</td><td><b>${fmtNum(t.subtotal, 4)}</b></td></tr>`).join("");
+
+    let rowsHtml = reagentRows.map((r, idx) => {
+      return `<tr>
+        <td>${idx + 1}</td>
+        <td>
+          <div class="detail-reagent-name">${esc(r.name)}${r.tag ? `<span class="badge-tag">${esc(r.tag)}</span>` : ""}</div>
+          ${detailMetaHtml(r)}
+        </td>
+        <td>${compactCalcHtml(r)}</td>
+        <td>${compactMassHtml(r)}</td>
+        <td class="highlight">${fmtMass(r.mass)} g</td>
+      </tr>`;
+    }).join("");
+
+    let html = `<div class="detail-modal-mask" id="detailModalMask" onclick="if(event.target.id==='detailModalMask') closeCalcDetail();">
+      <div class="detail-modal">
+        <button class="detail-close" onclick="closeCalcDetail()">关闭</button>
+        <h3>核对计算过程</h3>
+
+        <div class="detail-summary">
+          <div class="detail-card"><div class="detail-card-label">目标化学式</div><div class="detail-card-value">${esc(detail.formula)}</div></div>
+          <div class="detail-card"><div class="detail-card-label">目标摩尔数</div><div class="detail-card-value">${fmtNum(detail.targetMol, 8)} mol</div></div>
+          <div class="detail-card"><div class="detail-card-label">理论样品质量</div><div class="detail-card-value">${fmtMass(detail.sampleMass)} g</div></div>
+        </div>
+
+        <div class="detail-section">
+          <h4>1. 分子质量</h4>
+          <div class="detail-formula">M(${esc(detail.formula)}) = ${esc(formulaExpr)} = <b>${fmtNum(detail.formulaMW, 4)} g/mol</b><br>
+          理论样品质量 = ${fmtNum(detail.targetMol, 8)} mol × ${fmtNum(detail.formulaMW, 4)} g/mol = <b>${fmtMass(detail.sampleMass)} g</b></div>
+          <div class="detail-table-wrap" style="margin-top:8px;">
+            <table class="detail-table" style="min-width:420px;">
+              <tr><th>元素</th><th>系数</th><th>相对原子质量</th><th>贡献(g/mol)</th></tr>
+              ${formulaRows || `<tr><td colspan="4">暂无分子质量明细。</td></tr>`}
+            </table>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <h4>2. 试剂用量</h4>
+          <div class="detail-table-wrap">
+            <table class="detail-table">
+              <tr><th style="width:35px;">#</th><th style="width:210px;">试剂</th><th style="width:260px;">摩尔关系</th><th style="width:230px;">质量计算</th><th style="width:95px;">结果</th></tr>
+              ${rowsHtml || `<tr><td colspan="5">暂无试剂计算过程。</td></tr>`}
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+    let old = document.getElementById("detailModalMask");
+    if(old) old.remove();
+    document.body.insertAdjacentHTML("beforeend", html);
+  }
+
+  function closeCalcDetail() {
+    let modal = document.getElementById("detailModalMask");
+    if(modal) modal.remove();
+  }
+
+  function formatLibIndex(idx) {
+    return idx ? `<span class="lib-index-tag">#${idx}</span>` : "";
+  }
+
+  function formatNameWithLibIndex(nameHtml, idx) {
+    return `${nameHtml}${formatLibIndex(idx)}`;
+  }
+
+  function getHistory() {
+    try {
+      let raw = localStorage.getItem(HISTORY_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch(e) {
+      console.warn("历史记录读取失败，已自动重置。", e);
+      localStorage.removeItem(HISTORY_KEY);
+      return [];
+    }
+  }
+
+  function setHistory(list) {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, 99)));
+  }
+
+  function makeHistoryKey(it) {
+    const sg = it.sg ? {
+      rE: Number(it.sg.rE),
+      rC: Number(it.sg.rC),
+      mE: Number(it.sg.mE),
+      pE: Number(it.sg.pE),
+      mC: Number(it.sg.mC),
+      pC: Number(it.sg.pC)
+    } : null;
+
+    const rows = (it.rows || []).map(r => ({
+      libIndex: r.libIndex ? Number(r.libIndex) : null,
+      name: String(r.name || ""),
+      mass: Number(Number(r.mass).toFixed(4)),
+      tag: String(r.tag || "")
+    }));
+
+    return JSON.stringify({
+      targetMol: Number(Number(getItemTargetMol(it)).toFixed(10)),
+      formula: String(it.formula || "").replace(/\s+/g, ""),
+      useSG: !!it.useSG,
+      sg,
+      rows
+    });
+  }
+
+  function saveHistory(item) {
+    let list = getHistory();
+    const newKey = makeHistoryKey(item);
+
+    // 防止重复：如果历史中已有完全相同的计算条件和结果，就删掉旧记录，只保留本次最新的一条
+    list = list.filter(oldItem => makeHistoryKey(oldItem) !== newKey);
+    list.unshift(item);
+
+    setHistory(list);
+    let kw = document.getElementById("historySearch") ? document.getElementById("historySearch").value : "";
+    renderHistory(kw);
+  }
+
+  function renderHistory(keyword = "") {
+    const box = document.getElementById("historyList");
+    if(!box) return;
+    let kw = String(keyword || "").trim().toLowerCase();
+    let list = getHistory();
+    if(kw) {
+      list = list.filter(it => {
+        let rowsText = (it.rows || []).map(r => `${r.name} ${r.mass} ${r.tag || ""}`).join(" ");
+        return `${it.time} ${it.formula} ${getHistoryAmountText(it)} ${rowsText}`.toLowerCase().includes(kw);
+      });
+    }
+    if(!list.length) {
+      box.innerHTML = `<div class="history-empty">暂无匹配历史；点击“智能配料计算”后会自动记录。</div>`;
+      return;
+    }
+    box.innerHTML = list.map(it => {
+      let preview = (it.rows || []).slice(0, 3).map(r => `${esc(r.name)}${r.libIndex ? `【#${r.libIndex}】` : ""} ${Number(r.mass).toFixed(4)} g`).join("；");
+      let more = (it.rows || []).length > 3 ? `；等 ${(it.rows || []).length} 项` : "";
+      let sgText = it.useSG ? `溶胶-凝胶：金属:E:C = 1:${it.sg?.rE ?? "-"}:${it.sg?.rC ?? "-"}` : "未启用溶胶-凝胶";
+      return `<div class="history-card">
+        <div class="history-title">${esc(it.formula)} <span class="badge-tag">${esc(getHistoryAmountText(it))}</span></div>
+        <div class="history-meta">${esc(it.time)} ｜ ${esc(sgText)}</div>
+        <div class="history-preview">${preview}${more}</div>
+        <div class="history-actions">
+          <button class="btn-mini btn-view" onclick="viewHistory('${esc(it.id)}')">查看结果</button>
+          <button class="btn-mini btn-load" onclick="loadHistory('${esc(it.id)}')">回填参数</button>
+          <button class="btn-mini btn-del" onclick="deleteHistory('${esc(it.id)}')">删除</button>
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  function makeHistoryResultTable(item) {
+    let amountText = getHistoryAmountText(item);
+    let h = `<div class="result-box"><div style="font-size:12px;color:#7f8c8d;margin-bottom:6px;">来自历史记录：${esc(item.time)} ｜ ${esc(item.formula)} ｜ ${esc(amountText)}</div><table style="width:100%"><tr><th>分配试剂</th><th>质量(g)</th></tr>`;
+    (item.rows || []).forEach(r => {
+      let tagHtml = r.tag ? `<span class="badge-tag">${esc(r.tag)}</span>` : '';
+      h += `<tr><td>${formatNameWithLibIndex(esc(r.name), r.libIndex)}${tagHtml}</td><td class="highlight">${Number(r.mass).toFixed(4)}</td></tr>`;
+    });
+    h += `</table>`;
+    if(item.detail) h += detailButtonHtml(item.id);
+    return h + `</div>`;
+  }
+
+  function viewHistory(id) {
+    let item = getHistory().find(it => it.id === id);
+    if(!item) return;
+    latestCalcDetail = item.detail || null;
+    document.getElementById("res").innerHTML = makeHistoryResultTable(item);
+  }
+
+  function loadHistory(id) {
+    let item = getHistory().find(it => it.id === id);
+    if(!item) return;
+    let targetMol = getItemTargetMol(item);
+    document.getElementById("tMol").value = Number.isFinite(targetMol) ? fmtNum(targetMol, 8) : "";
+    document.getElementById("tF").value = item.formula;
+    document.getElementById("useSG").checked = !!item.useSG;
+    toggleSG();
+    if(item.sg) {
+      document.getElementById("rE").value = item.sg.rE;
+      document.getElementById("rC").value = item.sg.rC;
+      document.getElementById("mE").value = item.sg.mE;
+      document.getElementById("pE").value = item.sg.pE;
+      document.getElementById("mC").value = item.sg.mC;
+      document.getElementById("pC").value = item.sg.pC;
+    }
+    updateMolMassPreview();
+    viewHistory(id);
+  }
+
+  function deleteHistory(id) {
+    setHistory(getHistory().filter(it => it.id !== id));
+    renderHistory(document.getElementById("historySearch").value);
+  }
+
+  function clearHistory() {
+    if(confirm("确定要清空全部历史记录吗？此操作不会影响药品库。")) {
+      localStorage.removeItem(HISTORY_KEY);
+      renderHistory(document.getElementById("historySearch").value);
+    }
+  }
+
+  function calc() {
+    // 计算时使用当前正在编辑的数据，并保存当前顺序，但不触发分组排序。
+    let inv = persistInventoryCurrentOrder().filter(it => it.sel);
+    let tMol = parseFloat(document.getElementById("tMol").value);
+    let tForm = document.getElementById("tF").value.replace(/\s+/g,"");
+    if(!Number.isFinite(tMol) || tMol <= 0 || !tForm) {
+      alert("请先填写有效的目标摩尔数和化学式。");
+      return;
+    }
+
+    let parsed = parseTargetFormula(tForm, true);
+    if(!parsed) return;
+
+    let tE = parsed.elements, tMW = parsed.mw, tMe = parsed.metalCoeff;
+    let n = tMol, sampleMass = n * tMW, res = [], req = {...tE};
+
+    let detail = {
+      formula: tForm,
+      targetMol: Number(n),
+      formulaMW: Number(tMW),
+      sampleMass: Number(sampleMass),
+      terms: parsed.terms,
+      reagentRows: []
+    };
+
+    inv.filter(it=>it.sec).forEach(it => {
+      if(req[it.sec]>0) {
+        let sc = getC(it.name, it.sec), mc = getC(it.name, it.el);
+        let reqBeforeSec = req[it.sec], reqBeforeMain = req[it.el] || 0;
+        let cN = reqBeforeSec/sc, reagentMol = cN*n, mass = (reagentMol*it.mw)/(it.p/100);
+        let remText = it.rem ? ` <span style="font-size:10px;color:#7f8c8d;">(${it.rem})</span>` : '';
+        res.push({ n: it.name + remText, rawName: it.name, rem: it.rem || "", m: mass, tag: `供${it.sec}`, libIndex: it.libIndex });
+
+        detail.reagentRows.push({
+          name: it.name,
+          libIndex: it.libIndex || null,
+          tag: `供${it.sec}`,
+          mw: Number(it.mw),
+          purity: Number(it.p),
+          mass,
+          calc: {
+            kind: "secondary",
+            secEl: it.sec,
+            mainEl: it.el,
+            reqCoeff: Number(reqBeforeSec),
+            secCoeff: Number(sc),
+            mainCoeff: Number(mc),
+            mainBefore: Number(reqBeforeMain),
+            mainAfter: Number(reqBeforeMain - cN*mc),
+            unitCoeff: Number(cN),
+            targetMol: Number(n),
+            reagentMol: Number(reagentMol)
+          },
+          steps: [
+            `目标中 ${it.sec} 系数 = ${fmtNum(reqBeforeSec, 6)}；${it.name} 中 ${it.sec} 系数 = ${fmtNum(sc, 6)}，所以试剂化学式单位系数 = ${fmtNum(reqBeforeSec, 6)} ÷ ${fmtNum(sc, 6)} = ${fmtNum(cN, 8)}`,
+            `试剂物质的量 = ${fmtNum(cN, 8)} × ${fmtNum(n, 8)} mol = ${fmtNum(reagentMol, 10)} mol`,
+            `质量 = ${fmtNum(reagentMol, 10)} mol × ${fmtNum(it.mw, 4)} g/mol ÷ (${fmtNum(it.p, 4)}/100) = ${fmtMass(mass)} g`,
+            `同时扣除 ${it.el} 系数：${fmtNum(reqBeforeMain, 6)} - ${fmtNum(cN, 8)}×${fmtNum(mc, 6)} = ${fmtNum(reqBeforeMain - cN*mc, 8)}`
+          ]
+        });
+
+        req[it.sec] -= cN*sc;
+        req[it.el] = (req[it.el] || 0) - cN*mc;
+      }
+    });
+
+    for(let el in req) {
+      if(req[el]>0.0001 && el!=="O") {
+        let it = inv.find(i => i.el===el && !i.sec) || inv.find(i => i.el===el);
+        if(it) {
+          let mc = getC(it.name, it.el);
+          let reqBefore = req[el];
+          let cN = reqBefore/mc, reagentMol = cN*n, mass = (reagentMol*it.mw)/(it.p/100);
+          let remText = it.rem ? ` <span style="font-size:10px;color:#7f8c8d;">(${it.rem})</span>` : '';
+          let tag = tE[el]!==req[el]?`补${el}`:'';
+          res.push({ n: it.name + remText, rawName: it.name, rem: it.rem || "", m: mass, tag, libIndex: it.libIndex });
+
+          detail.reagentRows.push({
+            name: it.name,
+            libIndex: it.libIndex || null,
+            tag,
+            mw: Number(it.mw),
+            purity: Number(it.p),
+            mass,
+            calc: {
+              kind: "main",
+              el,
+              reqCoeff: Number(reqBefore),
+              reagentCoeff: Number(mc),
+              unitCoeff: Number(cN),
+              targetMol: Number(n),
+              reagentMol: Number(reagentMol)
+            },
+            steps: [
+              `剩余 ${el} 系数 = ${fmtNum(reqBefore, 6)}；${it.name} 中 ${el} 系数 = ${fmtNum(mc, 6)}，所以试剂化学式单位系数 = ${fmtNum(reqBefore, 6)} ÷ ${fmtNum(mc, 6)} = ${fmtNum(cN, 8)}`,
+              `试剂物质的量 = ${fmtNum(cN, 8)} × ${fmtNum(n, 8)} mol = ${fmtNum(reagentMol, 10)} mol`,
+              `质量 = ${fmtNum(reagentMol, 10)} mol × ${fmtNum(it.mw, 4)} g/mol ÷ (${fmtNum(it.p, 4)}/100) = ${fmtMass(mass)} g`
+            ]
+          });
+
+          req[el] = 0;
+        }
+      }
+    }
+
+    let h = `<div class="result-box">
+      <div style="font-size:12px;color:#7f8c8d;margin-bottom:6px;">
+        目标：${fmtNum(n, 8)} mol ｜ M(${esc(tForm)}) = ${fmtNum(tMW, 4)} g/mol ｜ 理论样品质量 = <b>${fmtMass(sampleMass)} g</b>
+      </div>
+      <table style="width:100%"><tr><th>分配试剂</th><th>质量(g)</th></tr>`;
+    res.forEach(r => {
+      let tagHtml = r.tag ? `<span class="badge-tag">${r.tag}</span>` : '';
+      h += `<tr><td>${formatNameWithLibIndex(r.n, r.libIndex)}${tagHtml}</td><td class="highlight">${r.m.toFixed(4)}</td></tr>`;
+    });
+
+    let historyRows = res.map(r => ({
+      libIndex: r.libIndex || null,
+      name: stripHtml(r.n),
+      mass: Number(r.m.toFixed(4)),
+      tag: r.tag || ""
+    }));
+
+    let sgRecord = null;
+    if(document.getElementById("useSG").checked) {
+      let rE = parseFloat(document.getElementById("rE").value), rC = parseFloat(document.getElementById("rC").value);
+      let mE = parseFloat(document.getElementById("mE").value), pEraw = parseFloat(document.getElementById("pE").value), pE = pEraw/100;
+      let mC = parseFloat(document.getElementById("mC").value), pCraw = parseFloat(document.getElementById("pC").value), pC = pCraw/100;
+      let nMe = n*tMe;
+      let edtaMass = (nMe*rE*mE)/pE;
+      let citricMass = (nMe*rC*mC)/pC;
+      h += `<tr><td colspan="2" style="background:#eee;color:#3498db;font-weight:bold;text-align:left;">溶胶-凝胶络合剂</td></tr>
+            <tr><td>EDTA</td><td class="highlight" style="color:#27ae60;">${edtaMass.toFixed(4)}</td></tr>
+            <tr><td>柠檬酸</td><td class="highlight" style="color:#27ae60;">${citricMass.toFixed(4)}</td></tr>`;
+      historyRows.push({ name: "EDTA", mass: Number(edtaMass.toFixed(4)), tag: "络合剂" });
+      historyRows.push({ name: "柠檬酸", mass: Number(citricMass.toFixed(4)), tag: "络合剂" });
+
+      detail.reagentRows.push({
+        name: "EDTA",
+        libIndex: null,
+        tag: "络合剂",
+        mw: Number(mE),
+        purity: Number(pEraw),
+        mass: edtaMass,
+        calc: {
+          kind: "complexant",
+          metalCoeff: Number(tMe),
+          targetMol: Number(n),
+          metalMol: Number(nMe),
+          ratio: Number(rE),
+          reagentMol: Number(nMe*rE)
+        },
+        steps: [
+          `目标化学式金属总系数（除 O/Cl/F）= ${fmtNum(tMe, 6)}`,
+          `金属总摩尔数 = ${fmtNum(n, 8)} mol × ${fmtNum(tMe, 6)} = ${fmtNum(nMe, 10)} mol`,
+          `EDTA 质量 = ${fmtNum(nMe, 10)} mol × ${fmtNum(rE, 6)} × ${fmtNum(mE, 4)} g/mol ÷ (${fmtNum(pEraw, 4)}/100) = ${fmtMass(edtaMass)} g`
+        ]
+      });
+      detail.reagentRows.push({
+        name: "柠檬酸",
+        libIndex: null,
+        tag: "络合剂",
+        mw: Number(mC),
+        purity: Number(pCraw),
+        mass: citricMass,
+        calc: {
+          kind: "complexant",
+          metalCoeff: Number(tMe),
+          targetMol: Number(n),
+          metalMol: Number(nMe),
+          ratio: Number(rC),
+          reagentMol: Number(nMe*rC)
+        },
+        steps: [
+          `目标化学式金属总系数（除 O/Cl/F）= ${fmtNum(tMe, 6)}`,
+          `金属总摩尔数 = ${fmtNum(n, 8)} mol × ${fmtNum(tMe, 6)} = ${fmtNum(nMe, 10)} mol`,
+          `柠檬酸质量 = ${fmtNum(nMe, 10)} mol × ${fmtNum(rC, 6)} × ${fmtNum(mC, 4)} g/mol ÷ (${fmtNum(pCraw, 4)}/100) = ${fmtMass(citricMass)} g`
+        ]
+      });
+
+      sgRecord = { rE, rC, mE, pE: pEraw, mC, pC: pCraw };
+    }
+
+    latestCalcDetail = detail;
+    document.getElementById("res").innerHTML = h + `</table>${detailButtonHtml()}</div>`;
+
+    saveHistory({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+      time: new Date().toLocaleString("zh-CN", { hour12: false }),
+      targetMol: Number(n),
+      sampleMass: Number(sampleMass),
+      targetMass: Number(sampleMass), // 兼容旧版历史字段：这里保存理论样品质量
+      formula: tForm,
+      useSG: document.getElementById("useSG").checked,
+      sg: sgRecord,
+      rows: historyRows,
+      detail
+    });
+
+    updateMolMassPreview();
+  }
+
+
+</script>
+
+<script>
+  // ===== PWA / 师门分享版 =====
+  let deferredInstallPrompt = null;
+  const PWA_INV_KEY = (typeof INV_KEY !== "undefined") ? INV_KEY : "inv_v_mobile_prefilled_v1";
+  const PWA_HISTORY_KEY = (typeof HISTORY_KEY !== "undefined") ? HISTORY_KEY : "calc_history_v1";
+
+  function isStandaloneMode() {
+    return window.matchMedia("(display-mode: standalone)").matches ||
+           window.navigator.standalone === true;
+  }
+
+  function isIosDevice() {
+    return /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  }
+
+  function setPwaStatus(text) {
+    const el = document.getElementById("pwaStatus");
+    if(el) el.innerHTML = text;
+  }
+
+  function showPwaModal(title, bodyHtml) {
+    const old = document.getElementById("pwaHelpMask");
+    if(old) old.remove();
+    const mask = document.createElement("div");
+    mask.id = "pwaHelpMask";
+    mask.className = "pwa-modal-mask";
+    mask.innerHTML = `
+      <div class="pwa-modal" role="dialog" aria-modal="true" aria-label="${attrEsc(title)}">
+        <h3>${attrEsc(title)}</h3>
+        <div>${bodyHtml}</div>
+        <div class="pwa-modal-actions">
+          <button class="pwa-modal-close" type="button" onclick="document.getElementById('pwaHelpMask').remove()">知道了</button>
+        </div>
+      </div>`;
+    mask.addEventListener("click", (e) => {
+      if(e.target === mask) mask.remove();
+    });
+    document.body.appendChild(mask);
+  }
+
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    const btn = document.getElementById("installAppBtn");
+    if(btn) btn.textContent = "📲 安装到手机";
+  });
+
+  window.addEventListener("appinstalled", () => {
+    deferredInstallPrompt = null;
+    const btn = document.getElementById("installAppBtn");
+    if(btn) {
+      btn.textContent = "✓ 已添加";
+      btn.disabled = true;
+    }
+    setPwaStatus("<b>已添加到主屏幕。</b> 药品库和历史记录仍保存在本机，可随时导出备份。");
+  });
+
+  async function installPwaApp() {
+    if(isStandaloneMode()) {
+      showPwaModal("已经是主屏幕模式", "<p>当前已经以独立应用方式打开，不需要重复安装。</p>");
+      return;
+    }
+
+    if(deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      try { await deferredInstallPrompt.userChoice; } catch(e) {}
+      deferredInstallPrompt = null;
+      return;
+    }
+
+    if(isIosDevice()) {
+      showPwaModal(
+        "iPhone / iPad 添加到主屏幕",
+        "<ol><li>请用 <b>Safari</b> 打开这个网页。</li><li>点击浏览器的 <b>分享</b> 按钮。</li><li>向下找到并点击 <b>“添加到主屏幕”</b>。</li><li>确认名称后点击 <b>“添加”</b>。</li></ol><p>以后可以直接从桌面图标进入，已缓存的页面在断网时也可以打开。</p>"
+      );
+    } else {
+      showPwaModal(
+        "添加到主屏幕",
+        "<p>如果浏览器没有直接弹出安装窗口，请打开浏览器菜单，选择 <b>“安装应用”</b>、<b>“添加到主屏幕”</b> 或类似选项。</p><p>注意：PWA 安装和离线功能需要通过网页地址（HTTPS）访问，直接双击本地 HTML 文件时不会启用。</p>"
+      );
+    }
+  }
+
+  function safeJsonParse(raw, fallback) {
+    try { return JSON.parse(raw); } catch(e) { return fallback; }
+  }
+
+  function exportAppBackup() {
+    // 先保存当前正在编辑但尚未点击“保存库”的内容，避免备份遗漏。
+    try {
+      if(typeof persistInventoryCurrentOrder === "function") persistInventoryCurrentOrder();
+    } catch(e) {}
+
+    const inventory = safeJsonParse(localStorage.getItem(PWA_INV_KEY), []);
+    const history = safeJsonParse(localStorage.getItem(PWA_HISTORY_KEY), []);
+
+    const backup = {
+      app: "实验室配方计算器",
+      backupVersion: 1,
+      exportedAt: new Date().toISOString(),
+      inventory,
+      history
+    };
+
+    const blob = new Blob([JSON.stringify(backup, null, 2)], {type:"application/json;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const d = new Date();
+    const pad = n => String(n).padStart(2, "0");
+    a.href = url;
+    a.download = `配方计算器备份_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+    setPwaStatus("<b>备份已导出。</b> 可以把这个 JSON 文件发给师门成员，对方用“导入备份”即可复制药品库和历史记录。");
+  }
+
+  function importAppBackupFile(event) {
+    const file = event?.target?.files?.[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(String(reader.result || ""));
+        const inventory = Array.isArray(data.inventory) ? data.inventory : null;
+        const history = Array.isArray(data.history) ? data.history : [];
+
+        if(!inventory) throw new Error("没有找到有效的 inventory 药品库数据。");
+
+        const ok = confirm(`将导入 ${inventory.length} 条药品记录和 ${history.length} 条历史记录。\n这会覆盖当前设备上的对应数据，是否继续？`);
+        if(!ok) return;
+
+        localStorage.setItem(PWA_INV_KEY, JSON.stringify(inventory));
+        localStorage.setItem(PWA_HISTORY_KEY, JSON.stringify(history));
+        alert("导入成功，页面将重新载入。");
+        location.reload();
+      } catch(err) {
+        alert("导入失败：这个文件不是有效的配方计算器备份。\n" + (err?.message || ""));
+      } finally {
+        event.target.value = "";
+      }
+    };
+    reader.onerror = () => {
+      alert("读取备份文件失败，请重新选择。");
+      event.target.value = "";
+    };
+    reader.readAsText(file, "utf-8");
+  }
+
+  async function sharePwaApp() {
+    if(location.protocol === "file:") {
+      showPwaModal(
+        "发布后再分享链接",
+        "<p>现在打开的是本地文件，所以还没有可供师门访问的网页地址。</p><p>把这个 PWA 文件夹部署到 Cloudflare Pages / GitHub Pages 后，再点击“分享网页”，就可以直接发链接给师门。</p>"
+      );
+      return;
+    }
+
+    const shareData = {
+      title: "实验室配方计算器",
+      text: "实验室配方与摩尔计算工具",
+      url: location.href
+    };
+
+    if(navigator.share) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch(e) {
+        if(e && e.name === "AbortError") return;
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(location.href);
+      setPwaStatus("<b>网页链接已复制。</b> 可以直接粘贴到师门群。");
+      alert("网页链接已复制。");
+    } catch(e) {
+      window.prompt("复制这个链接分享给师门：", location.href);
+    }
+  }
+
+  function initPwaExtras() {
+    const btn = document.getElementById("installAppBtn");
+
+    if(isStandaloneMode()) {
+      if(btn) {
+        btn.textContent = "✓ 已添加";
+        btn.disabled = true;
+      }
+      setPwaStatus("<b>主屏幕模式。</b> 药品库和历史记录保存在当前设备，可用导出备份转移到其他设备。");
+    } else if(location.protocol === "file:") {
+      setPwaStatus("<b>本地预览模式。</b> 计算功能可用；发布为 HTTPS 网页后才会启用安装、离线缓存和链接分享。");
+    } else {
+      setPwaStatus("<b>网页分享版。</b> 可添加到主屏幕；数据默认保存在当前设备，换设备前建议导出备份。");
+    }
+
+    if("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
+      navigator.serviceWorker.register("./sw.js").catch(() => {});
+    }
+  }
+
+  window.addEventListener("load", initPwaExtras);
+</script>
+
+</body>
+</html>
